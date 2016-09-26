@@ -15,11 +15,6 @@ open FSharp.Charting
 open MongoDB.Bson
 open MongoDB.Driver
 
-// крч, есть сайты https://www.kaggle.com и https://www.quandl.com, 
-// на них хранятся всякие разные датасеты. 
-// 1 лаба - скачать оттуда какой-нибудь датасет на 5 и более столбцов, 
-// в формате csv и импортировать в любую nosql базу
-
 // Types
 type ImdbMovies = CsvProvider<"movie_metadata.csv", IgnoreErrors=true>
 type ImdbMovie = ImdbMovies.Row
@@ -27,7 +22,8 @@ type Movie = { Id : string;
                Title : string; 
                Score : float; 
                Budget : int option;
-               Likes : int }
+               Likes : int;
+               Director : string }
 
 // Converters
 let optionOfNullable (a : System.Nullable<'T>) = 
@@ -45,33 +41,26 @@ let imdbMovieToMovie (m:ImdbMovie) =
     Title = m.Movie_title; 
     Score = float m.Imdb_score;
     Budget = optionOfNullable m.Budget;
-    Likes = m.Cast_total_facebook_likes }
+    Likes = m.Cast_total_facebook_likes;
+    Director = m.Director_name }
 
 let documentToMovie (m:BsonDocument) =
     { Id = m.GetElement("_id").Value.ToString(); 
       Title = m.GetElement("Title").Value.ToString(); 
       Score = m.GetElement("Score").Value.ToDouble(); 
       Budget = optionOfNullable (m.GetElement("Budget").Value.AsNullableInt32);
-      Likes = m.GetElement("Likes").Value.ToInt32() }
+      Likes = m.GetElement("Likes").Value.ToInt32();
+      Director = m.GetElement("Director").Value.ToString() }
 
 let movieToDocument (m:Movie) = BsonDocument ([ BsonElement("_id" , BsonObjectId(ObjectId(m.Id)) ); 
                                                        BsonElement("Title" , BsonValue.Create m.Title ); 
                                                        BsonElement("Score" , BsonValue.Create m.Score ); 
                                                        BsonElement("Budget", BsonValue.Create (nullableOfOption m.Budget) ); 
-                                                       BsonElement("Likes" , BsonValue.Create m.Likes );])
+                                                       BsonElement("Likes" , BsonValue.Create m.Likes );
+                                                       BsonElement("Director" , BsonValue.Create m.Director );])
 
 // Parse file and work with some fields
 let movies = ImdbMovies.GetSample();
-
-for movie in movies.Rows do
-    printfn "%A" movie.Country
-
-let someRows = movies.Rows |> Seq.take 100
-
-someRows
- |> Seq.groupBy (fun m -> m.Country)
- |> Seq.map (fun (c, v) -> (c, v |> Seq.sumBy (fun m -> m.Imdb_score)))
- |> Chart.Column
 
 // Insert data to db
 let connectionString = "mongodb://localhost"
@@ -82,19 +71,8 @@ let imdbMovies = movies.Rows
                     |> Seq.map movieToDocument
                     |> Seq.toList
 
-let insertCollection = db.GetCollection<BsonDocument> "movies"
-insertCollection.InsertMany imdbMovies
+let collection = db.GetCollection<BsonDocument> "movies"
+collection.DeleteMany FilterDefinition.Empty
+collection.InsertMany imdbMovies
 
-
-// Get data from db
-let getCollection = db.GetCollection<BsonDocument> "movies"
-let filter = FilterDefinition<BsonDocument>.Empty
-getCollection.Find(filter).ToListAsync()
-  |> Async.AwaitTask
-  |> Async.RunSynchronously
-  |> Seq.map documentToMovie
-  |> Seq.sortByDescending (fun m -> m.Score)
-  |> Seq.take 5
-  |> Seq.map (fun m -> m.Title, m.Score)
-  |> Chart.Column
 
