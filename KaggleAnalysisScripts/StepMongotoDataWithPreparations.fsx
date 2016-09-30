@@ -11,39 +11,6 @@ open System
 open System.IO
 open XPlot.Plotly
 
-//* 3D *//
-let values f xRange yRange xStep yStep = 
-    let xmin, xmax = xRange
-    let ymin, ymax = yRange
-    let stepByX = xStep
-    let stepByY = yStep
-
-    [for x in xmin..stepByX..xmax -> [for y in ymin..stepByY..ymax -> f x y] ]
-
-let valuesWithDefaultSteps f xRange yRange =
-    values f xRange yRange 0.1 0.1
-
-let valuesWithDefaultStepsAndRanges f =
-    valuesWithDefaultSteps f (-10.,10.) (-10.,10.)
-
-let display layout zValues =
-   [Surface(z = zValues)]
-        |> Plotly.Plot
-        |> Plotly.WithLayout layout
-
-let displayWithDefaultLayout zValues =
-    display (Layout(title = "None", autosize = true)) zValues
-
-let html zValues =
-    let chart = displayWithDefaultLayout zValues
-    chart.GetInlineHtml ()
-
-
-valuesWithDefaultStepsAndRanges (fun x y -> ( x ** 2. + y ** 2. ))
-    |> displayWithDefaultLayout
-
-
-//* 3D END *//
 let rand = new Random()
 
 let randomColor () =
@@ -96,19 +63,17 @@ let styledLayout =
     )
 
 let filter = FilterDefinition<BsonDocument>.Empty
-collection.Find(filter).ToListAsync()
-  |> Async.AwaitTask
-  |> Async.RunSynchronously
-  |> Seq.map documentToMovie
-  |> Seq.filter (fun m -> Option.isSome m.Budget )
-  |> Seq.groupBy (fun m -> m.Director)
-  |> Seq.sortByDescending (fun (d, ms) -> (ms |> Seq.averageBy (fun m -> m.Score)))
-  |> Seq.map (fun (d, ms) -> (d, Seq.toList ms))
-  |> Seq.map createDisplayData
-  |> Seq.map createTrace
-  |> Seq.take 10
-  |> Plotly.Plot
-  |> Plotly.WithLayout styledLayout
-  |> Plotly.WithWidth 700
-  |> Plotly.WithHeight 500
+let movies = collection.Find(filter).ToListAsync()
+                            |> Async.AwaitTask
+                            |> Async.RunSynchronously
+                            |> Seq.map documentToMovie
+
+
+let moviesWithBudget = movies |> Seq.filter (fun m -> Option.isSome m.Budget )
+
+let moviesByDirectorWithBudget = movies
+                                    |> Seq.filter (fun m -> Option.isSome m.Budget )
+                                    |> Seq.groupBy (fun m -> m.Director)
+                                    |> Seq.map (fun (d, ms) -> (d, Seq.toList ms))
+
 
