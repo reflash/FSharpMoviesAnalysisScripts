@@ -75,6 +75,10 @@
       <HintPath>..\packages\Accord.Extensions.Math.3.0.1\lib\net45\Accord.Extensions.Math.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="Accord.Extensions.Statistics">
+      <HintPath>..\packages\Accord.Extensions.Statistics.3.0.1\lib\net45\Accord.Extensions.Statistics.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="Accord.MachineLearning.GPL">
       <HintPath>..\packages\Accord.MachineLearning.GPL.3.3.0\lib\net45\Accord.MachineLearning.GPL.dll</HintPath>
       <Private>True</Private>
