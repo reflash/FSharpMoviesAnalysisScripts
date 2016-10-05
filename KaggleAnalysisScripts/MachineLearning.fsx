@@ -29,15 +29,18 @@ let getMultipleRegression data =
 let computeByMultipleLinearRegression (x:float[]) (r:MultipleLinearRegression) =
     r.Transform(x)
 
+let computeByMultipleLinearRegression2 (r:MultipleLinearRegression) (x:float[]) =
+    r.Transform(x)
+
 moviesWithBudget
  |> getMoviesData1
  |> getMultipleRegression 
- |> computeByMultipleLinearRegression [| 237000000.0; 48350.0 |]
+ |> computeByMultipleLinearRegression [| 225000000.0; 12572.0 |]
 
 
-let getMoviesData2 movies = 
+let getMoviesData2 score movies = 
         let inputs = movies |> Seq.map (fun m -> ([| float (Option.get m.Budget); float m.Likes |])) |> Seq.toArray
-        let outputs = (movies |> Seq.map (fun m -> m.Score > 6.5) |> Seq.toArray)
+        let outputs = (movies |> Seq.map (fun m -> m.Score > score) |> Seq.toArray)
         { BoolPredictors = inputs; BoolOutputs = outputs }
 
 let getLogisticRegression data =
@@ -51,9 +54,43 @@ let getLogisticRegression data =
 let computeProbabilityByLogisticRegression (x:float[]) (r:LogisticRegression) =
     r.Probability(x)
 
+
 moviesWithBudget
- |> getMoviesData2
+ |> getMoviesData2 6.5
  |> getLogisticRegression 
  |> computeProbabilityByLogisticRegression [| 237000000.0; 48350.0 |]
 
+let split70_30 data = 
+    let n70 = (Seq.length data)*70/100
+    (Seq.take n70 data, Seq.skip n70 data)
 
+let trainSet, validationSet = moviesWithBudget |> split70_30
+
+let trainedModel = trainSet |> getMoviesData1  |> getMultipleRegression
+let validate trainedModel = 
+    Seq.map (fun m -> (m.Score, computeByMultipleLinearRegression2 trainedModel [| float (Option.get m.Budget); float m.Likes |], float (Option.get m.Budget)))
+
+let trace data=
+    let xs = data |> Seq.map (fun (b, _) -> b)
+    let y1s = data |> Seq.map (fun (b, s) -> s |> Seq.averageBy (fun (s1:float,_,_) -> s1))
+    let y2s = data |> Seq.map (fun (b, s) -> s |> Seq.averageBy (fun (_,s2:float,_) -> s2))
+    let real = Scatter(
+                    name = "Real data",
+                    x = xs,
+                    y = y1s
+                )
+    let calc = Scatter(
+                    name = "Predicted data",
+                    x = xs,
+                    y = y2s
+                )
+    [real;calc]
+
+validationSet 
+ |> validate trainedModel
+ |> Seq.groupBy (fun (_,_,b) -> b)
+ |> Seq.sortBy (fun (b, _) -> b)
+ |> trace
+ |> Plotly.Plot
+ |> Plotly.WithWidth 700
+ |> Plotly.WithHeight 500
