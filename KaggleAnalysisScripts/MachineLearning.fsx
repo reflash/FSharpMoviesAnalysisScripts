@@ -35,7 +35,7 @@ let computeByMultipleLinearRegression2 (r:MultipleLinearRegression) (x:float[]) 
 moviesWithBudget
  |> getMoviesData1
  |> getMultipleRegression 
- |> computeByMultipleLinearRegression [| 225000000.0; 12572.0 |]
+ |> computeByMultipleLinearRegression [| 250000000.0; 9152.0 |]
 
 
 let getMoviesData2 score movies = 
@@ -58,7 +58,7 @@ let computeProbabilityByLogisticRegression (x:float[]) (r:LogisticRegression) =
 moviesWithBudget
  |> getMoviesData2 6.5
  |> getLogisticRegression 
- |> computeProbabilityByLogisticRegression [| 237000000.0; 48350.0 |]
+ |> computeProbabilityByLogisticRegression [| 250000000.0; 9152.0 |]
 
 let split70_30 data = 
     let n70 = (Seq.length data)*70/100
@@ -67,8 +67,10 @@ let split70_30 data =
 let trainSet, validationSet = moviesWithBudget |> split70_30
 
 let trainedModel = trainSet |> getMoviesData1  |> getMultipleRegression
-let validate trainedModel = 
-    Seq.map (fun m -> (m.Score, computeByMultipleLinearRegression2 trainedModel [| float (Option.get m.Budget); float m.Likes |], float (Option.get m.Budget)))
+let validate f trainedModel = 
+    Seq.map (fun m -> (m.Score, f trainedModel [| float (Option.get m.Budget); float m.Likes |], float (Option.get m.Budget)))
+let validateMultipleLinearRegression2 trainedModel = 
+    validate computeByMultipleLinearRegression2 trainedModel
 
 let trace data=
     let xs = data |> Seq.map (fun (b, _) -> b)
@@ -87,9 +89,10 @@ let trace data=
     [real;calc]
 
 validationSet 
- |> validate trainedModel
+ |> validateMultipleLinearRegression2 trainedModel
  |> Seq.groupBy (fun (_,_,b) -> b)
  |> Seq.sortBy (fun (b, _) -> b)
+ |> Seq.take 211
  |> trace
  |> Plotly.Plot
  |> Plotly.WithWidth 700
