@@ -1,7 +1,3 @@
-﻿//2 лаба - сделать на любом языке для этого сета анализатор, 
-//а ля такого https://habrahabr.ru/company/mlclass/blog/270973/ 
-//который бы выводил графики и/или тренды по какой либо закономерности в данных
-
 #load "C:\Users\daniil.ekzaryan\Documents\Visual Studio 2015\Projects\KaggleAnalysisScripts\KaggleAnalysisScripts\StepCSVtoMongo.fsx"
 
 #load "C:\Users\daniil.ekzaryan\Documents\Visual Studio 2015\Projects\KaggleAnalysisScripts\packages/FsLab.1.0.1/Themes/DefaultWhite.fsx"
